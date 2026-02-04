@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+</head>
+<body>
+<script>
+    const PREFIXES = ['url:', 'url=', 'link:', 'link='];
+    const MAX_DEPTH = 5; // safety limit to prevent infinite ext loops
+
+    function getRootDomain() {
+        const h = location.hostname;
+
+        if (h.includes('.redirect.hns.to')) return h.split('.redirect.hns.to')[0];
+        if (h.includes('.redirect.rsvr.xyz')) return h.split('.redirect.rsvr.xyz')[0];
+        if (h.includes('.redirect.hnsgate.alohabrowser.com')) return h.split('.redirect.hnsgate.alohabrowser.com')[0];
+        if (h.endsWith('.redirect')) return h.split('.redirect')[0];
+
+        return h;
+    }
+
+    async function fetchTXT(domain) {
+        const url = `https://resolve.shakestation.io/dns-query?name=${domain}&type=TXT`;
+
+        const res = await fetch(url, {
+            headers: { 'Accept': 'application/dns-json' }
+        });
+
+        if (!res.ok) throw new Error(`DNS fetch failed for ${domain}`);
+
+        const data = await res.json();
+        if (!data.Answer) return [];
+
+        return data.Answer
+            .filter(r => r.type === 16)
+            .map(r => r.data.replace(/"/g, ''));
+    }
+
+    function normalizeURL(url) {
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            return 'https://' + url;
+        }
+        return url;
+    }
+
+    async function resolveAndRedirect(domain, depth = 0) {
+        if (depth >= MAX_DEPTH) return false;
+
+        const records = await fetchTXT(domain);
+
+        // 1️⃣ prefixed links
+        for (const prefix of PREFIXES) {
+            for (const r of records) {
+                if (r.startsWith(prefix)) {
+                    location.replace(normalizeURL(r.slice(prefix.length)));
+                    return true;
+                }
+            }
+        }
+
+        // 2️⃣ raw http(s)
+        for (const r of records) {
+            if (r.startsWith('http://') || r.startsWith('https://')) {
+                location.replace(r);
+                return true;
+            }
+        }
+
+        // 3️⃣ ext:
+        for (const r of records) {
+            if (r.startsWith('ext:')) {
+                const nextDomain = r.slice(4).trim();
+                if (nextDomain) {
+                    return resolveAndRedirect(nextDomain, depth + 1);
+                }
+            }
+        }
+
+        return false;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const root = getRootDomain();
+            const redirected = await resolveAndRedirect(root);
+
+            if (!redirected) {
+                document.body.textContent = 'No redirect found.';
+            }
+        } catch (e) {
+            document.body.textContent = 'Redirect error.';
+            console.error(e);
+        }
+    });
+</script>
+</body>
+</html>
