@@ -9,7 +9,7 @@ A lightweight client-side redirector that resolves DNS TXT records and instantly
 3. Redirects in this priority order:
    - `url:` / `url=` / `link:` / `link=`
    - Plain `http://` or `https://`
-   - `ext:` (recursively resolves another domain’s TXT records)
+   - `ext:` (TXT chaining)
 
 Redirects happen as fast as possible using `location.replace()`.
 
