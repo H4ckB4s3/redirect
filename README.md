@@ -1,10 +1,10 @@
 # TXT Redirect Resolver
 
-A lightweight client-side redirector that resolves DNS TXT records and instantly redirects visitors based on their contents. Designed for Handshake/TWIST-style domains and DNS-over-HTTPS resolvers.
+A lightweight client-side redirector that resolves DNS TXT records and instantly redirects visitors based on their contents. Designed for Handshake/TLD redirect.
 
 ## How it works
 
-1. Extracts the root domain from common `.twist` gateway patterns  
+1. Extracts the root domain from common `.redirect` gateway patterns  
 2. Fetches TXT records via DNS-over-HTTPS  
 3. Redirects in this priority order:
    - `url:` / `url=` / `link:` / `link=`
